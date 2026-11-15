@@ -1,0 +1,34 @@
+name: dump-mem
+on: [push]
+jobs:
+  dump:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0
+          chmod +x museum_obby.bin
+          grep -o 'avx512f' /proc/cpuinfo | head -1 || echo "PAS D AVX512"
+      - name: Run and dump
+        run: |
+          export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
+          ./museum_obby.bin > game.log 2>&1 &
+          GAME_PID=$!
+          sleep 10
+          if kill -0 $GAME_PID 2>/dev/null; then
+            echo "process alive"
+            python3 dumpmem.py $GAME_PID
+          else
+            echo "PROCESS DEAD"
+            cat game.log || true
+          fi
+          kill $GAME_PID 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: memdump
+          path: |
+            memdump*.bin
+            game.log
