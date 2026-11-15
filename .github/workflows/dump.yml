@@ -1,5 +1,7 @@
 name: dump-mem
-on: [push]
+on:
+  push:
+  workflow_dispatch:
 jobs:
   dump:
     runs-on: ubuntu-latest
